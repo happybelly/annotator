@@ -8,6 +8,7 @@ exports.filter = require('./ui/filter');
 exports.highlighter = require('./ui/highlighter');
 exports.markdown = require('./ui/markdown');
 exports.tags = require('./ui/tags');
+exports.crowd = require('./ui/crowd');
 exports.textselector = require('./ui/textselector');
 exports.viewer = require('./ui/viewer');
 exports.widget = require('./ui/widget');

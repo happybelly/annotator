@@ -25,6 +25,21 @@ function trim(s) {
 }
 
 
+// Format function
+if (!String.prototype.format) {
+  String.prototype.format = function() {
+    var args = arguments;
+    return this.replace(/{(\d+)}/g, function(match, number) { 
+      return typeof args[number] != 'undefined'
+        ? args[number]
+        : match
+      ;
+    });
+  };
+}
+
+
+
 // annotationFactory returns a function that can be used to construct an
 // annotation from a list of selected ranges.
 function annotationFactory(contextEl, ignoreSelector) {
@@ -265,6 +280,12 @@ function main(options) {
             },
             onDelete: function (ann) {
                 app.annotations['delete'](ann);
+            },
+            onApprove: function (ann) {
+                app.annotations['approve'](ann);
+            },
+            onReject: function (ann) {
+                app.annotations['reject'](ann);
             },
             permitEdit: function (ann) {
                 return authz.permits('update', ann, ident.who());

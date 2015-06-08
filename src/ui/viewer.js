@@ -105,6 +105,12 @@ var Viewer = exports.Viewer = Widget.extend({
         if (typeof this.options.onDelete !== 'function') {
             throw new TypeError("onDelete callback must be a function");
         }
+        if (typeof this.options.onApprove !== 'function') {
+            throw new TypeError("onApprove callback must be a function");
+        }
+        if (typeof this.options.onReject !== 'function') {
+            throw new TypeError("onReject callback must be a function");
+        }
         if (typeof this.options.permitEdit !== 'function') {
             throw new TypeError("permitEdit callback must be a function");
         }
@@ -142,6 +148,14 @@ var Viewer = exports.Viewer = Widget.extend({
             })
             .on("click." + NS, '.annotator-delete', function (e) {
                 self._onDeleteClick(e);
+            })
+            .on("click." + NS, '.annotator-approve', function (e) {
+                console.log("On Approve called! (root ev)");
+                self._onApproveClick(e);
+            })
+            .on("click." + NS, '.annotator-reject', function (e) {
+                console.log("On Reject called! (root ev)");
+                self._onRejectClick(e);
             })
             .on("mouseenter." + NS, function () {
                 self._clearHideTimer();
@@ -340,6 +354,35 @@ var Viewer = exports.Viewer = Widget.extend({
         this.options.onDelete(item);
     },
 
+    // Event callback: called when the approve button is clicked.
+    //
+    // event - An Event object.
+    //
+    // Returns nothing.
+    _onApproveClick: function (event) {
+        console.log("_onApproveClick fired");
+        var item = $(event.target)
+            .parents('.annotator-annotation')
+            .data('annotation');
+        //this.hide();
+        console.log(item);
+        this.options.onApprove(item);
+    },
+
+    // Event callback: called when the reject button is clicked.
+    //
+    // event - An Event object.
+    //
+    // Returns nothing.
+    _onRejectClick: function (event) {
+        console.log("_onRejectClick fired");
+        var item = $(event.target)
+            .parents('.annotator-annotation')
+            .data('annotation');
+        //this.hide();
+        this.options.onReject(item);
+    },
+
     // Event callback: called when a user triggers `mouseover` on a highlight
     // element.
     //
@@ -452,6 +495,12 @@ Viewer.itemTemplate = [
     '       title="' + _t('View as webpage') + '"',
     '       class="annotator-link">' + _t('View as webpage') + '</a>',
     '    <button type="button"',
+    '            title="' + _t('Approve') + '"',
+    '            class="annotator-approve">' + _t('Approve') + '</button>',
+    '    <button type="button"',
+    '            title="' + _t('Reject') + '"',
+    '            class="annotator-reject">' + _t('Reject') + '</button>',
+    '    <button type="button"',
     '            title="' + _t('Edit') + '"',
     '            class="annotator-edit">' + _t('Edit') + '</button>',
     '    <button type="button"',
@@ -491,7 +540,9 @@ Viewer.options = {
 
     // Callback, called when the user clicks the delete button for an
     // annotation.
-    onDelete: function () {}
+    onDelete: function () {} ,
+    onApprove: function () {},
+    onReject: function ()  {}
 };
 
 
@@ -523,6 +574,28 @@ exports.standalone = function standalone(options) {
                 };
             }
 
+            if (typeof options.onApprove === 'undefined') {
+                options.onApprove = function (annotation) {
+                    if (!annotation.crowd.approvals) {
+                        annotation.crowd.approvals = 0;
+                    }
+
+                    annotation.crowd.approvals++;
+                    app.annotations.update(annotation);
+                };
+            }
+
+            if (typeof options.onReject === 'undefined') {
+                options.onReject = function (annotation) {
+                    if (!annotation.crowd.rejections) {
+                        annotation.crowd.rejections = 0;
+                    }
+
+                    annotation.crowd.rejections++;
+                    app.annotations.update(annotation);
+                };
+            }
+            
             // Set default handlers that determine whether the edit and delete
             // buttons are shown in the viewer:
             if (typeof options.permitEdit === 'undefined') {

@@ -29,9 +29,7 @@
 
     <article>
       <p>
-        He was an old man who fished alone in a skiff in the Gulf Stream and he
-        had gone eighty-four days now without taking a fish. In the first forty
-        days a boy had been with him. But after forty days without a fish the
+        But after forty days without a fish the
         boy's parents had told him that the old man was now definitely and
         finally <em>salao</em>, which is the worst form of unlucky, and the boy
         had gone at their orders in another boat which caught three good fish
@@ -112,16 +110,37 @@
     </article>
 
     <!-- The main Annotator script -->
-    <script src="pkg/annotator.min.js"></script>
+    <script src="pkg/annotator.js"></script>
     <script>
+
+
+function helloWorld() {
+    return {
+        start: function (app) {
+            app.notify("Hello, world!");
+        }
+    };
+}
+
+
       if (typeof annotator === 'undefined') {
         alert("Oops! it looks like you haven't built Annotator. " +
               "Either download a tagged release from GitHub, or build the " +
               "package by running `make`");
       } else {
         var app = new annotator.App();
-        app.include(annotator.ui.main);
-        app.start();
+        app.include(helloWorld);
+        app.include(annotator.storage.http, {
+    		prefix: 'http://127.0.0.1:5000'
+		});
+        app.include(annotator.ui.main, {
+    		viewerExtensions: [annotator.ui.tags.viewerExtension, annotator.ui.crowd.viewerExtension],
+    		editorExtensions: [annotator.ui.tags.editorExtension, annotator.ui.crowd.editorExtension]
+		});
+        app.start()
+		.then(function () {
+		     app.annotations.load();
+		});
       }
     </script>
   </body>

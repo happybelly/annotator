@@ -53,6 +53,16 @@ exports.debug = function () {
             return annotation;
         },
 
+        'approve': function (annotation) {
+            trace('approve', annotation);
+            return annotation;
+        },
+
+        'reject': function (annotation) {
+            trace('reject', annotation);
+            return annotation;
+        },
+
         query: function (queryObj) {
             trace('query', queryObj);
             return {results: [], meta: {total: 0}};
@@ -94,6 +104,13 @@ exports.noop = function () {
             return annotation;
         },
 
+        'approve': function (annotation) {
+            return annotation;
+        },
+
+        'reject': function (annotation) {
+            return annotation;
+        },
         query: function () {
             return {results: []};
         },
@@ -215,6 +232,25 @@ HttpStorage.prototype.update = function (annotation) {
 HttpStorage.prototype['delete'] = function (annotation) {
     return this._apiRequest('destroy', annotation);
 };
+
+HttpStorage.prototype['approve'] = function (annotation) {
+    if (!annotation.crowd.approvals) {
+        annotation.crowd.approvals = 0;
+    }
+
+    annotation.crowd.approvals++;
+    return this._apiRequest('update', annotation);
+};
+
+HttpStorage.prototype['reject'] = function (annotation) {
+    if (!annotation.crowd.rejections) {
+        annotation.crowd.rejections = 0;
+    }
+
+    annotation.crowd.rejections++;
+    return this._apiRequest('update', annotation);
+};
+
 
 /**
  * function:: HttpStorage.prototype.query(queryObj)
@@ -605,6 +641,35 @@ StorageAdapter.prototype['delete'] = function (obj) {
         'annotationDeleted'
     );
 };
+
+
+StorageAdapter.prototype['approve'] = function (obj) {
+    if (typeof obj.id === 'undefined' || obj.id === null) {
+        throw new TypeError("annotation must have an id for delete()");
+    }
+    return this._cycle(
+        obj,
+        'approve',
+        'beforeAnnotationApproved',
+        'annotationApproved'
+    );
+};
+
+
+StorageAdapter.prototype['reject'] = function (obj) {
+    if (typeof obj.id === 'undefined' || obj.id === null) {
+        throw new TypeError("annotation must have an id for delete()");
+    }
+    return this._cycle(
+        obj,
+        'reject',
+        'beforeAnnotationRejected',
+        'annotationRejected'
+    );
+};
+
+
+
 
 /**
  * function:: StorageAdapter.prototype.query(query)

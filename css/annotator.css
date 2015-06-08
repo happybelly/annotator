@@ -286,6 +286,17 @@
 	display: none;
 }
 
+
+.annotator-viewer .annotator-controls .annotator-approve {
+	background-position: 0 -120px;
+}
+
+.annotator-viewer .annotator-controls .annotator-reject {
+	background-position: 0 -90px;
+}
+
+
+
 .annotator-viewer .annotator-controls .annotator-edit {
 	background-position: 0 -60px;
 }
@@ -702,6 +713,54 @@
 	-o-border-radius: 8px;
 	border-radius: 8px;
 }
+
+
+/* Annotator Paper Crowdsource
+-------------------------------------------------------------------- */
+.annotator-approval span {
+	display: inline-block;
+	padding: 0 8px;
+	margin-bottom: 2px;
+	line-height: 1.6;
+	font-weight: bold;
+	-webkit-border-radius: 8px;
+	-moz-border-radius: 8px;
+	-o-border-radius: 8px;
+	border-radius: 8px;
+}
+
+.crowd-approves {
+	background-color: #95FF95;
+	color: white;
+
+	-webkit-border-top-right-radius: 0 !important;
+	-webkit-border-bottom-right-radius: 0 !important;
+	-moz-border-top-right-radius: 0 !important;
+	-moz-border-bottom-right-radius: 0 !important;
+	-o-border-top-right-radius: 0 !important;
+	-o-border-bottom-right-radius: 0 !important;
+	border-top-right-radius: 0 !important;
+	border-bottom-right-radius: 0 !important;
+}
+
+.crowd-rejections {
+	background-color: #FF9595;
+	color: white;
+	
+	-webkit-border-top-left-radius: 0 !important;
+	-webkit-border-bottom-left-radius: 0 !important;
+	-moz-border-top-left-radius: 0 !important;
+	-moz-border-bottom-left-radius: 0 !important;
+	-o-border-top-left-radius: 0 !important;
+	-o-border-bottom-left-radius: 0 !important;
+	border-top-left-radius: 0 !important;
+	border-bottom-left-radius: 0 !important;
+}
+
+.crowd-revision {
+	background-color: rgb(230, 230, 230);
+}
+
 
 /* Annotator Filter
 -------------------------------------------------------------------- */
