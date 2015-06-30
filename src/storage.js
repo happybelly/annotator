@@ -122,6 +122,117 @@ exports.noop = function () {
 };
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Doesn't seem to work :( */
+
+/*
+
+var LocalSuggestionStorage;
+
+exports.localSuggestion = function localSuggestion(options) {
+    // This gets overridden on app start
+    var notify = function () {};
+
+    if (typeof options === 'undefined' || options === null) {
+        options = {};
+    }
+
+    // Use the notifier unless an onError handler has been set.
+    options.onError = options.onError || function (msg, xhr) {
+        console.error(msg, xhr);
+        notify(msg, 'error');
+    };
+
+	var storage = new LocalSuggestionStorage(options);
+
+	return {
+        configure: function (registry) {
+            registry.registerUtility(storage, 'storage');
+        },
+
+        start: function (app) {
+        	console.log("Starting the localSuggestion Plugin");
+            notify = app.notify;
+        }
+	};
+};
+
+
+LocalSuggestionStorage = exports.LocalSuggestionStorage = function LocalSuggestionStorage(options) {
+    this.options = $.extend(true, {}, HttpStorage.options, options);
+    this.onError = this.options.onError;
+};
+
+LocalSuggestionStorage.prototype.create = function (annotation) {
+    return false;
+};
+
+LocalSuggestionStorage.prototype.update = function (annotation) {
+    return false;
+};
+
+LocalSuggestionStorage.prototype['delete'] = function (annotation) {
+    return false;
+};
+
+LocalSuggestionStorage.prototype['approve'] = function (annotation) {
+    return false;
+};
+
+LocalSuggestionStorage.prototype['reject'] = function (annotation) {
+    return false;
+};
+
+LocalSuggestionStorage.prototype.query = function (queryObj) {
+	console.log("Local Suggestion Storage Querying ");
+	console.log(queryObj);
+
+    return this._localRequest('get', queryObj)
+    .then(function (obj) {
+
+        console.log(obj);
+
+        return {results: rows, meta: obj};
+    });
+};
+
+LocalSuggestionStorage.prototype._localRequest = function (action, obj) {
+    var id = obj && obj.id;
+
+    console.log("Here is the local request object");
+    console.log(obj);
+    
+    var request = $.ajax('/', options);
+
+    // Append the id and action to the request object
+    // for use in the error callback.
+    request._id = id;
+    request._action = action;
+    return request;
+};
+
+LocalSuggestionStorage.options = {
+};
+
+*/
+
+
+
+
 var HttpStorage;
 
 
@@ -263,13 +374,68 @@ HttpStorage.prototype['reject'] = function (annotation) {
  * :rtype: Promise
  */
 HttpStorage.prototype.query = function (queryObj) {
-    return this._apiRequest('search', queryObj)
+    //return this._apiRequest('search', queryObj)
+    console.log("Storage query called!");
+    return Promise.all([this.normalStoreQuery(queryObj), this.localSuggestionQuery(queryObj)])
     .then(function (obj) {
+    	var rows = obj[0].rows.concat(obj[1]);
+        delete obj[0].rows;
+        console.log("Final return of query action:");
+        console.log({results: rows, meta: obj[0]});
+        return {results: rows, meta: obj[0], facts: obj[1]};
+    });
+};
+
+
+/**
+ * function:: HttpStorage.prototype.localSuggestionQuery(queryObj)
+ *
+ * Searches for annotations matching the specified query.
+ *
+ * :param Object queryObj: An object describing the query.
+ * :returns:
+ *   A promise, resolves to an object containing query `results` and `meta`.
+ * :rtype: Promise
+ */
+HttpStorage.prototype.localSuggestionQuery = function (queryObj) {
+	console.log("Local Suggestion Query called!");
+	var url = this.options.localSuggestionPrefix + this.options.localSuggestionURL;
+    return $.ajax(url, {
+        type: "GET",
+        dataType: "json"})
+    .then( function (obj) {
+    	console.log("This is the local suggestion Query:");
+    	obj = obj.filter(function(elm) { elm.isFact = true; return elm.type && elm.type === "Sentence" });
+    	console.log(obj);
+    	return obj;
+    });
+};
+
+
+/**
+ * function:: HttpStorage.prototype.normalStoreQuery(queryObj)
+ *
+ * Searches for annotations matching the specified query.
+ *
+ * :param Object queryObj: An object describing the query.
+ * :returns:
+ *   A promise, resolves to an object containing query `results` and `meta`.
+ * :rtype: Promise
+ */
+HttpStorage.prototype.normalStoreQuery = function (queryObj) {
+	console.log("Normal Query called!");
+    return this._apiRequest('search', queryObj);
+    /*
+    .then(function (obj) {
+    	console.log("This is the normal store query:");
+    	console.log(obj.rows);
         var rows = obj.rows;
         delete obj.rows;
         return {results: rows, meta: obj};
     });
+	*/
 };
+
 
 /**
  * function:: HttpStorage.prototype.setHeader(name, value)
@@ -524,6 +690,45 @@ HttpStorage.options = {
         search: '/search'
     }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 /**

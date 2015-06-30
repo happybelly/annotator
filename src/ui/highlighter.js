@@ -7,7 +7,6 @@ var util = require('../util');
 var $ = util.$;
 var Promise = util.Promise;
 
-
 // highlightRange wraps the DOM Nodes within the provided range with a highlight
 // element of the specified class and returns the highlight Elements.
 //
@@ -87,6 +86,8 @@ Highlighter.prototype.destroy = function () {
 //
 // Returns nothing.
 Highlighter.prototype.drawAll = function (annotations) {
+    console.log("Drawing...");
+    console.log(annotations);
     var self = this;
 
     var p = new Promise(function (resolve) {
@@ -125,12 +126,44 @@ Highlighter.prototype.drawAll = function (annotations) {
 //
 // Returns an Array of drawn highlight elements.
 Highlighter.prototype.draw = function (annotation) {
+    console.log("Drawing annotation");
     var normedRanges = [];
 
+
+    if (typeof(annotation.isFact) !== 'undefined') {
+        if (annotation.type === "Sentence") {
+            // Find the closest matched sentence
+            //console.log("Looking for the closest matched paragraph");
+            var elm = util.getClosestMatchElm(annotation.sentence);
+            //console.log(elm);
+            var xpath = util.getXPath(elm);
+            //console.log(xpath);
+            annotation.ranges = [];
+            annotation.ranges.push({
+                start: xpath,
+                end: xpath,
+                startOffset: 0,
+                endOffset: $(elm).text().length - 1
+            });
+            annotation.id = "Swz" + util.guid();
+        } else {
+            // Swallow the thing, nothing we could do
+            console.log("Munch! Annotation type unknown.");
+            return;
+        }
+        annotation.text = annotation.fact;
+    }
+    console.log(annotation);
+    console.log("---Anchoring element---");
+
     for (var i = 0, ilen = annotation.ranges.length; i < ilen; i++) {
+        console.log("range");
+        console.log(annotation.ranges[i]);
         var r = reanchorRange(annotation.ranges[i], this.element);
         if (r !== null) {
             normedRanges.push(r);
+            console.log("Normed range is");
+            console.log(r);
         }
     }
 
