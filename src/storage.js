@@ -43,6 +43,14 @@ exports.debug = function () {
             return annotation;
         },
 
+        createbundle: function (annotationbundle) {
+        	for (var i = 0; i < annotationbundle.length; i++) {
+        		annotationbundle[i].id = id();
+        		trace('create', annotation[i]);
+        	}
+        	return annotationbundle;
+        },
+
         update: function (annotation) {
             trace('update', annotation);
             return annotation;
@@ -307,6 +315,10 @@ HttpStorage.prototype.create = function (annotation) {
     return this._apiRequest('create', annotation);
 };
 
+HttpStorage.prototype.createbundle = function (annotationbundle) {
+    return this._apiRequest('createbundle', annotationbundle);
+};
+
 /**
  * function:: HttpStorage.prototype.update(annotation)
  *
@@ -374,7 +386,25 @@ HttpStorage.prototype['reject'] = function (annotation) {
  * :rtype: Promise
  */
 HttpStorage.prototype.query = function (queryObj) {
-    //return this._apiRequest('search', queryObj)
+	var _this = this;
+    return this._apiRequest('search', queryObj)
+    .then(function (obj) {
+        var rows = obj.rows;
+        delete obj.rows;
+
+        console.log("Here are the results on the server");
+        console.log(rows);
+
+	    _this.localSuggestionQuery(queryObj, rows)
+	    .then(function(results) {
+	    	console.log("Calling ConvertFactsToAnnotations");
+	    	console.log(results);
+	    	_this.convertFactsToAnnotations(results);
+	    });
+
+        return {results: rows, meta: obj};
+    });
+    /*
     console.log("Storage query called!");
     return Promise.all([this.normalStoreQuery(queryObj), this.localSuggestionQuery(queryObj)])
     .then(function (obj) {
@@ -384,58 +414,104 @@ HttpStorage.prototype.query = function (queryObj) {
         console.log({results: rows, meta: obj[0]});
         return {results: rows, meta: obj[0], facts: obj[1]};
     });
+	*/
 };
 
+
+HttpStorage.prototype.convertFactsToAnnotations = function (facts) {
+	var ret = [];
+	var annotationBundle = [];
+
+	for (var i = 0; i < facts.length; i++) {
+		var annotation = facts[i];
+        // Find the closest matched sentence
+        //console.log("Looking for the closest matched paragraph");
+
+        var elm = util.getClosestMatchElm(annotation.sentence);
+        //console.log(annotation.sentence);
+        //console.log(elm);
+        var xpath = util.getXPath(elm);
+        //console.log(xpath);
+        annotation.ranges = [];
+        var endOffset = $(elm).text().length - 1;
+        if (endOffset < 0) {
+            endOffset = 0;
+        }
+        annotation.ranges.push({
+            start: xpath,
+            end: xpath,
+            startOffset: 0,
+            endOffset: endOffset
+        });
+
+        // TODO: Really hacky -- This should call beforeAnnotationCreated
+        // instead of doing this
+        annotation.uri = util.javaHashCode(window.location.href);
+        
+        console.log(annotation);
+
+        //this.create(annotation);
+        annotationBundle.push(annotation);
+	}
+	this.createbundle(annotationBundle);
+
+	return ret;
+} 
 
 /**
  * function:: HttpStorage.prototype.localSuggestionQuery(queryObj)
  *
- * Searches for annotations matching the specified query.
+ * Searches for annotations suggested by the local facts extractor.
  *
  * :param Object queryObj: An object describing the query.
  * :returns:
  *   A promise, resolves to an object containing query `results` and `meta`.
  * :rtype: Promise
  */
-HttpStorage.prototype.localSuggestionQuery = function (queryObj) {
+HttpStorage.prototype.localSuggestionQuery = function (queryObj, existingAnnotations) {
 	console.log("Local Suggestion Query called!");
 	var url = this.options.localSuggestionPrefix + this.options.localSuggestionURL;
+	//console.log("The existing annotations are:");
+	//console.log(existingAnnotations);
+
+	// We don't want to re-create the annotations that are already there.
+	// So we're collecting all the hash values of the annotations that are there
+	var allChksums = [];
+	for (var i = 0; i < existingAnnotations.length; i++) {
+		if (existingAnnotations[i].hashval) {
+			allChksums.push(existingAnnotations[i].hashval);
+		}
+	}
     return $.ajax(url, {
         type: "GET",
         dataType: "json"})
     .then( function (obj) {
-    	console.log("This is the local suggestion Query:");
-    	obj = obj.filter(function(elm) { elm.isFact = true; return elm.type && elm.type === "Sentence" });
-    	console.log(obj);
+    	//console.log("This is the local suggestion Query:");
+    	obj = obj.filter(function(elm) { 
+    		elm.fromfactx = true;
+    		if (typeof elm.type === "undefined") {
+    			return false;
+    		}  else if (elm.type !== "Sentence") {
+    			return false;
+    		}
+
+    		elm.text = elm.fact;
+    		delete elm.fact;
+
+    		// if the user or someone else has already created 
+    		// an annotation for this, then skip
+    		elm.hashval = util.javaHashCode(elm.sentence);
+    		if (allChksums.indexOf(elm.hashval) > -1) {
+    			console.log("This sentence is already extracted, ignoring. ");
+    			console.log(elm.sentence);
+    			return false;
+    		}
+    		return true;
+    	});
+    	//console.log(obj);
     	return obj;
     });
 };
-
-
-/**
- * function:: HttpStorage.prototype.normalStoreQuery(queryObj)
- *
- * Searches for annotations matching the specified query.
- *
- * :param Object queryObj: An object describing the query.
- * :returns:
- *   A promise, resolves to an object containing query `results` and `meta`.
- * :rtype: Promise
- */
-HttpStorage.prototype.normalStoreQuery = function (queryObj) {
-	console.log("Normal Query called!");
-    return this._apiRequest('search', queryObj);
-    /*
-    .then(function (obj) {
-    	console.log("This is the normal store query:");
-    	console.log(obj.rows);
-        var rows = obj.rows;
-        delete obj.rows;
-        return {results: rows, meta: obj};
-    });
-	*/
-};
-
 
 /**
  * function:: HttpStorage.prototype.setHeader(name, value)
@@ -565,6 +641,7 @@ HttpStorage.prototype._urlFor = function (action, id) {
  */
 HttpStorage.prototype._methodFor = function (action) {
     var table = {
+    	createbundle: 'POST',
         create: 'POST',
         update: 'PUT',
         destroy: 'DELETE',
@@ -685,6 +762,7 @@ HttpStorage.options = {
      */
     urls: {
         create: '/annotations',
+        createbundle: '/bulkannotations',
         update: '/annotations/{id}',
         destroy: '/annotations/{id}',
         search: '/search'

@@ -86,8 +86,8 @@ Highlighter.prototype.destroy = function () {
 //
 // Returns nothing.
 Highlighter.prototype.drawAll = function (annotations) {
-    console.log("Drawing...");
-    console.log(annotations);
+    //console.log("Drawing...");
+    //console.log(annotations);
     var self = this;
 
     var p = new Promise(function (resolve) {
@@ -128,24 +128,29 @@ Highlighter.prototype.drawAll = function (annotations) {
 Highlighter.prototype.draw = function (annotation) {
     console.log("Drawing annotation");
     var normedRanges = [];
-
-
+    /*
     if (typeof(annotation.isFact) !== 'undefined') {
         if (annotation.type === "Sentence") {
             // Find the closest matched sentence
             //console.log("Looking for the closest matched paragraph");
             var elm = util.getClosestMatchElm(annotation.sentence);
+            //console.log(annotation.sentence);
             //console.log(elm);
             var xpath = util.getXPath(elm);
             //console.log(xpath);
             annotation.ranges = [];
+            var endOffset = $(elm).text().length - 1;
+            if (endOffset < 0) {
+                endOffset = 0;
+            }
             annotation.ranges.push({
                 start: xpath,
                 end: xpath,
                 startOffset: 0,
-                endOffset: $(elm).text().length - 1
+                endOffset: endOffset
             });
-            annotation.id = "Swz" + util.guid();
+            annotation.id = "Swz-" + util.javaHashCode($(elm).text());
+            console.log(annotation);
         } else {
             // Swallow the thing, nothing we could do
             console.log("Munch! Annotation type unknown.");
@@ -153,17 +158,18 @@ Highlighter.prototype.draw = function (annotation) {
         }
         annotation.text = annotation.fact;
     }
-    console.log(annotation);
-    console.log("---Anchoring element---");
+    */
+    //console.log(annotation);
+    //console.log("---Anchoring element---");
 
     for (var i = 0, ilen = annotation.ranges.length; i < ilen; i++) {
-        console.log("range");
-        console.log(annotation.ranges[i]);
+        //console.log("range");
+        //console.log(annotation.ranges[i]);
         var r = reanchorRange(annotation.ranges[i], this.element);
         if (r !== null) {
             normedRanges.push(r);
-            console.log("Normed range is");
-            console.log(r);
+            //console.log("Normed range is");
+            //console.log(r);
         }
     }
 
