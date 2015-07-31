@@ -446,7 +446,7 @@ HttpStorage.prototype.convertFactsToAnnotations = function (facts) {
 
         // TODO: Really hacky -- This should call beforeAnnotationCreated
         // instead of doing this
-        annotation.uri = util.javaHashCode(window.location.href);
+        annotation.uri = "urn:x-pdf:" + PDFViewerApplication.pdfDocument.fingerprint; /*util.javaHashCode(window.location.href);*/
         
         console.log(annotation);
 
