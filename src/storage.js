@@ -223,7 +223,7 @@ LocalSuggestionStorage.prototype._localRequest = function (action, obj) {
 
     console.log("Here is the local request object");
     console.log(obj);
-    
+
     var request = $.ajax('/', options);
 
     // Append the id and action to the request object
@@ -400,7 +400,7 @@ HttpStorage.prototype.query = function (queryObj) {
             console.log("Calling ConvertFactsToAnnotations for %o", results);
             _this.convertFactsToAnnotations(results);
         });
- 
+
        console.log("Returning all results");
         return {results: rows, meta: obj};
     });
@@ -419,44 +419,48 @@ HttpStorage.prototype.query = function (queryObj) {
 
 
 HttpStorage.prototype.convertFactsToAnnotations = function (facts) {
-	var ret = [];
-	var annotationBundle = [];
+    var ret = [];
+    var annotationBundle = [];
+    var prev_position = 0
 
-	for (var i = 0; i < facts.length; i++) {
-		var annotation = facts[i];
-        // Find the closest matched sentence
-        //console.log("Looking for the closest matched paragraph");
-
-        var elm = util.getClosestMatchElm(annotation.sentence);
-        //console.log(annotation.sentence);
-        //console.log(elm);
-        var xpath = util.getXPath(elm);
-        //console.log(xpath);
+    for (var i = 0; i < facts.length; i++) {
+        var annotation = facts[i];
         annotation.ranges = [];
-        var endOffset = $(elm).text().length - 1;
-        if (endOffset < 0) {
-            endOffset = 0;
+        try {
+            var elms = util.getClosestMatchElm(annotation.sentence, prev_position);
+        } catch(err) {
+            console.log('Error occured trying to align fact');
+            continue
         }
-        annotation.ranges.push({
-            start: xpath,
-            end: xpath,
-            startOffset: 0,
-            endOffset: endOffset
+
+        if (elms == null) continue;
+        prev_position = elms.end - 1; // OBOB
+
+        elms.nodes.forEach(function(node) {
+            var xpath = util.getXPath(node.element.node.parentNode);
+            annotation.ranges.push({
+                start: xpath,
+                end: xpath,
+                startOffset: node.startCorrected,
+                endOffset: node.endCorrected
+            });
+
         });
 
         // TODO: Really hacky -- This should call beforeAnnotationCreated
         // instead of doing this
         annotation.uri = "urn:x-pdf:" + PDFViewerApplication.pdfDocument.fingerprint; /*util.javaHashCode(window.location.href);*/
-        
+
         console.log(annotation);
 
         //this.create(annotation);
         annotationBundle.push(annotation);
-	}
-	this.createbundle(annotationBundle);
+    }
+    console.log("Create bundle -- -- --- --- --- ---")
+    this.createbundle(annotationBundle);
 
-	return ret;
-} 
+    return ret;
+}
 
 HttpStorage.prototype.sendPDFBlob = function(url) {
     return new Promise(function(resolve, reject) {
@@ -517,7 +521,7 @@ HttpStorage.prototype.localSuggestionQuery = function (queryObj, existingAnnotat
     return this.sendPDFBlob(this.options.localSuggestionPrefix + this.options.localSuggestionPDFUploadURL)
     .then( function (obj) {
 
-    	obj = obj.filter(function(elm) { 
+    	obj = obj.filter(function(elm) {
             console.log("Filtering - %o", elm);
     		elm.fromfactx = true;
     		if (typeof elm.type === "undefined") {
@@ -529,7 +533,7 @@ HttpStorage.prototype.localSuggestionQuery = function (queryObj, existingAnnotat
     		elm.text = elm.fact;
     		delete elm.fact;
 
-    		// if the user or someone else has already created 
+    		// if the user or someone else has already created
     		// an annotation for this, then skip
     		elm.hashval = util.javaHashCode(elm.sentence);
     		if (allChksums.indexOf(elm.hashval) > -1) {
@@ -540,7 +544,7 @@ HttpStorage.prototype.localSuggestionQuery = function (queryObj, existingAnnotat
 
     		return true;
     	});
-        
+
     	//console.log("~~~~~~~~~~~~~~~");
         console.log("After filtering, got %o", obj);
         //console.log(obj);

@@ -3,6 +3,31 @@
 var $ = require('jquery');
 var Promise = require('es6-promise').Promise;
 
+require('./dom/dom_text_mapper')
+require('./dom/dom_text_matcher')
+require('./dom/text_match_engines')
+require('./dom/text_mapper_core')
+require('./dom/diff_match_patch')
+
+
+var matcherSingleton = (function () {
+    var instance;
+    function createInstance() {
+        var _mapper =  new DomTextMapper();
+        _mapper.scan()
+        var object =  new DomTextMatcher(_mapper);
+        return object;
+    }
+    return {
+        getInstance: function () {
+            if (!instance) {
+                instance = createInstance();
+            }
+            return instance;
+        }
+    };
+})();
+
 var ESCAPE_MAP = {
     "&": "&amp;",
     "<": "&lt;",
@@ -66,79 +91,12 @@ function getXPath( element )
 }
 
 
-// Needleman-Wunsch linear alignment of two arrays
-// Huan - this is what I set out to do
-function lAlign(a, b) {
-    var current = [];
-    var lookback = [];
-
-    var nw_match = 2;
-    var nw_mismatch = -1;
-    var nw_indel = 0;
-
-    for (var j = 0; j < b.length + 1; j++) {
-        current[j] = j * nw_indel;
-    }
-    //console.log(current);
-
-    for (var i = 1; i < a.length + 1; i++) {
-        for (var j = 0; j < b.length + 1; j++) {
-            lookback[j] = current[j];
-        }
-        current[0] = i * nw_indel;
-        //console.log(lookback);
-        //console.log(current[0]);
-        for (var j = 1; j < b.length + 1; j++) {
-            if (a[i-1] === b[j-1]) {
-                current[j] = lookback[j-1] + nw_match;
-            } else {
-                current[j] = Math.max(lookback[j-1] + nw_mismatch,
-                                Math.max(lookback[j] + nw_indel,
-                                    current[j-1] + nw_indel));
-            }
-        }
-    }
-
-    //console.log("-------------");
-
-    //console.log(lookback);
-    //console.log(current);
-
-    return current[b.length];
-}
-
-
-// Tries its best to create all the annotations
-// based on the facts it is given
-function getClosestMatchElm(sentence) {
+function getClosestMatchElm(sentence, start_position) {
     //console.log("getBestSentence called!");
+    sentence = sentence.replace(/ +(?= )/g,'');
     console.log("OK sentence is " + sentence);
-    var potentialElements = $('#viewer').children().children().children().toArray();
-    //console.log(potentialElements);
-    //facts.forEach ( function(element, index, array) {
-        //console.log("Looking for match for sentence: "+ element.sentence);
-
-        var bestSentence = null;
-        var bestSentenceScore = 0;
-
-        potentialElements.forEach( function(element2, index2, array2) {
-            if ($(element2).text().split(" ").length > 0) {
-              var matchScore = lAlign( $(element2).text().split(" "), sentence.split(" ") );
-              //console.log("Comparing with " + $(element2).text() + ", got score " + matchScore );
-              if (bestSentenceScore == 0 || matchScore > bestSentenceScore) {
-                  bestSentenceScore = matchScore;
-                  bestSentence = element2;
-              }
-            }
-        });
-
-        //console.log( "The best sentence score " +  bestSentenceScore + " is: " + $(bestSentence).text() );
-        
-        $(bestSentence).css("background-color", "pink");
-        //console.log("About to give you results");
-        return bestSentence;
-
-    //} );
+    var results =  matcherSingleton.getInstance().searchFuzzy(sentence, start_position, false, null)
+    return (results.matches.length == 0)  ? null : results.matches[0]
 };
 
 
@@ -158,7 +116,6 @@ exports.gettext = gettext;
 exports.escapeHtml = escapeHtml;
 exports.mousePosition = mousePosition;
 exports.getXPath = getXPath;
-exports.lAlign = lAlign;
 exports.getClosestMatchElm = getClosestMatchElm;
 exports.javaHashCode = javaHashCode;
 //exports.guid = guid;
